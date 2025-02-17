@@ -55,42 +55,95 @@ void PORT1_IRQHandler(void)
 	   // clear flag, acknowledge   
        SWITCH_1_PORT->IFG &= ~SWITCH_1_PIN;
 
-       // Switch 1 pressed --> start timer
-       if (!Timer1RunningFlag)
-       {
-           Timer1RunningFlag = TRUE;
-           Timer32_1_Enable();
-       }
-       else // Pressed again --> stop timer
+       // Switch 1 pressed 2nd time
+       if (Timer1RunningFlag)
        {
            Timer1RunningFlag = FALSE;
            Timer32_1_Disable();
-       }           
-   }
-   
+       }
+       else // Switch 1 pressed 1st time
+       {
+           Timer1RunningFlag = TRUE;
+           Timer32_1_Enable();
+       }       
+   }      
 }
+   
+void Switch1_Interrupt_Init(void)
+{
+   // disable interrupts
+   DisableInterrupts();
+    
+   // initialize the Switch as per previous lab
+   Switch1_Init();
+		
+   //7-0 PxIFG RW 0h Port X interrupt flag
+   //0b = No interrupt is pending.
+   //1b = Interrupt is pending.
+   // clear flag1 (reduce possibility of extra interrupt)	
+   SWITCH_1_PORT->IFG &= ~SWITCH_1_PIN;
 
+   //7-0 PxIE RW 0h Port X interrupt enable
+   //0b = Corresponding port interrupt disabled
+   //1b = Corresponding port interrupt enabled	
+   // arm interrupt on  P1.1	
+   SWITCH_1_PORT->IE |= SWITCH_1_PIN;
+
+   //7-0 PxIES RW Undefined Port X interrupt edge select
+   //0b = PxIFG flag is set with a low-to-high transition.
+   //1b = PxIFG flag is set with a high-to-low transition
+   // now set the pin to cause falling edge interrupt event
+   // P1.1 is falling edge event
+   SWITCH_1_PORT->IES |= SWITCH_1_PIN; 
+	
+   // now set the pin to cause falling edge interrupt event
+   NVIC_IPR8 = (NVIC_IPR8 & 0x00FFFFFF)|0x40000000; // priority 2
+	
+   // enable Port 1 - interrupt 35 in NVIC	
+   NVIC_ISER1 = 0x00000008;  
+	
+   // enable interrupts  (// clear the I bit	)
+   EnableInterrupts();              
+	
+}
 
 // main
 int main(void)
 {
-	//char temp[64];
+	int tmp36_mV;
+    int tempC;
     
 	//initializations
 	uart0_init();
 	uart0_put("Lab5 ADC demo\r\n");
 
-	Switch1_Init();
+	Switch1_Interrupt_Init();
     // Set the Timer32-1 to 2Hz (0.5 sec between interrupts)
     Timer32_1_Init(&Timer32_1_ISR, SystemCoreClock/2, T32DIV1); // initialize Timer A32-1;
+    Timer32_1_Enable();
 	ADC0_InitSWTriggerCh6();
 	EnableInterrupts();
     
     while(1)
     {
-	    uart0_put("ADC Input: ");
-        putnumHex(analogIn);
-        uart0_put("\n\r");
+        if (Timer1RunningFlag)
+        {
+            #ifdef PHOTOCELL
+	        uart0_put("ADC Input: ");
+            putnumHex(analogIn);
+            uart0_put("\r\n");  
+            #endif
+            
+            #ifdef TMP36
+            uart0_put("Temp in Celsius: ");
+            tmp36_mV = 5000*analogIn/16384.0;
+            tempC = (tmp36_mV - 500) / 10;
+            putnumU(tempC);
+            uart0_put("\n\rTemp in Fahrenheit: ");
+            putnumU(tempC*9/5.0 + 32);
+            uart0_put("\r\n");  
+            #endif                      
+        }
     }
 }
 

@@ -156,7 +156,8 @@ void putnumHex(int num)
     
     for (i = 0; i < 8; i++)
     {
-        hexNum = (num & (0x0000000F << i*4));
+        hexNum = (num & 0x0000000F);
+        num = num >> 4;
         if (hexNum > 9)
         {
             // Add ASCII value of 7 to get correct hex letter

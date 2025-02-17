@@ -141,7 +141,7 @@ unsigned int ADC_In(void)
     ADC14->CTL0 |= BIT0;  
 
 	// 3) wait for ADC14->IFGR0, ADC14->IFGR0 bit 0 is set when conversion done
-    while ((ADC14->IFGR0 & BIT0) != 0)
+    while ((ADC14->IFGR0 & BIT0) != BIT0)
     {
         // Wait
     }        
