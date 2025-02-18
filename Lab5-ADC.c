@@ -131,13 +131,13 @@ int main(void)
             #ifdef PHOTOCELL
 	        uart0_put("ADC Input: ");
             putnumHex(analogIn);
+            uart0_putchar('\t');
+            putnumU(analogIn);
             uart0_put("\r\n");  
-            #endif
-            
-            #ifdef TMP36
+            #else
             uart0_put("Temp in Celsius: ");
-            tmp36_mV = 5000*analogIn/16384.0;
-            tempC = (tmp36_mV - 500) / 10;
+            tmp36_mV = 3300*analogIn/16384.0;
+            tempC = (tmp36_mV - 750) / 10.0;
             putnumU(tempC);
             uart0_put("\n\rTemp in Fahrenheit: ");
             putnumU(tempC*9/5.0 + 32);
